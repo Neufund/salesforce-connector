@@ -2,6 +2,7 @@ import os
 
 from flask import Flask, jsonify, request
 from simple_salesforce import Salesforce
+from werkzeug.exceptions import BadRequest
 
 import auth
 
@@ -28,7 +29,7 @@ def only_keys(data, keys):
 
 @app.route('/api/users/<string:uid>', methods=['GET'])
 @auth.verify_jwt(check=auth.verify_logged_in, optional=True)
-def get_private_user_data(uid):
+def get_user_data(uid):
     contact = sf.Contact.get(uid)
     if request.authorization:
         return jsonify(
@@ -37,20 +38,17 @@ def get_private_user_data(uid):
         return jsonify(only_keys(contact, app.config["PUBLIC_FIELDS"]))
 
 
+@app.route('/api/users/<string:uid>', methods=['POST'])
+@auth.verify_jwt(check=auth.verify_logged_in)
+def update_user_data(uid):
+    data = request.get_json()
+    if "key" not in data:
+        raise BadRequest("key property in request data is missing")
+    if "value" not in data:
+        raise BadRequest("value property in request data is missing")
+    sf.Contact.update(uid, {data["key"]: data["value"]})
+    return "User data updated"
+
+
 if __name__ == '__main__':
     app.run()
-
-
-# pprint(sf.Contact.get_by_custom_id("Ethereum_Address__c", "PO"))
-# pprint(sf.query_all("SELECT Id FROM Contact"))
-# pprint(sf.query("SELECT Id, Name, Email, Company, Phone "
-#                 "FROM Lead WHERE EthereumAddress__c = '0xa57Da36D823976D21B8A6e1c584f17FCB4BF116a'"))
-
-# pprint(sf.query("UPDATE Lead  "
-#                 "SET Name='Remco' "
-#                 "WHERE EthereumAddress__c = '0xa57Da36D823976D21B8A6e1c584f17FCB4BF116a'"))
-# pprint(sf.Lead.describe())
-# pprint(sf.Lead.describe_layout(ID))
-# pprint(sf.Lead.get(ID))
-# pprint(sf.Contact.update(ID, {"Ethereum_Address__c": "PO"}))
-# pprint(sf.Lead.create({"Name": "Leonid"}))
