@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from simple_salesforce import Salesforce
 
 import auth
@@ -27,16 +27,14 @@ def only_keys(data, keys):
 
 
 @app.route('/api/users/<string:uid>', methods=['GET'])
-def get_public_user_data(uid):
-    contact = sf.Contact.get(uid)
-    return jsonify(only_keys(contact, app.config["PUBLIC_FIELDS"]))
-
-
-@app.route('/api/users/<string:uid>/private', methods=['GET'])
-@auth.verify_jwt(check=auth.verify_logged_in)
+@auth.verify_jwt(check=auth.verify_logged_in, optional=True)
 def get_private_user_data(uid):
     contact = sf.Contact.get(uid)
-    return jsonify(only_keys(contact, app.config["PUBLIC_FIELDS"] + app.config["PRIVATE_FIELDS"]))
+    if request.authorization:
+        return jsonify(
+            only_keys(contact, app.config["PUBLIC_FIELDS"] + app.config["PRIVATE_FIELDS"]))
+    else:
+        return jsonify(only_keys(contact, app.config["PUBLIC_FIELDS"]))
 
 
 if __name__ == '__main__':
