@@ -53,14 +53,9 @@ def update_user_data(uid):
         contact = sf.Contact.get(uid)
     except SalesforceResourceNotFound:
         raise NotFound("User {} not found".format(uid))
-    data = request.get_json()
-    if "key" not in data:
-        raise BadRequest("key property in request data is missing")
-    if "value" not in data:
-        raise BadRequest("value property in request data is missing")
     if contact["Ethereum_Address__c"] != request.authorization["address"]:
         raise Forbidden("You're only allowed to modify your own data")
-    sf.Contact.update(uid, {data["key"]: data["value"]})
+    sf.Contact.update(uid, request.get_json())
     return "User data updated"
 
 
