@@ -3,8 +3,8 @@ import os
 from base64 import b64encode
 
 from flask import Flask, jsonify, request
-from simple_salesforce import Salesforce
-from werkzeug.exceptions import BadRequest, Forbidden
+from simple_salesforce import Salesforce, SalesforceResourceNotFound
+from werkzeug.exceptions import BadRequest, Forbidden, HTTPException, NotFound
 from werkzeug.utils import secure_filename
 
 import auth
@@ -33,7 +33,10 @@ def only_keys(data, keys):
 @app.route('/api/users/<string:uid>', methods=['GET'])
 @auth.verify_jwt(check=auth.verify_logged_in)
 def get_user_data(uid):
-    contact = sf.Contact.get(uid)
+    try:
+        contact = sf.Contact.get(uid)
+    except SalesforceResourceNotFound:
+        raise NotFound("User {} not found".format(uid))
     if contact["Ethereum_Address__c"] == request.authorization["address"]:
         # Request for own data
         return jsonify(
@@ -46,7 +49,10 @@ def get_user_data(uid):
 @app.route('/api/users/<string:uid>', methods=['POST'])
 @auth.verify_jwt(check=auth.verify_logged_in)
 def update_user_data(uid):
-    contact = sf.Contact.get(uid)
+    try:
+        contact = sf.Contact.get(uid)
+    except SalesforceResourceNotFound:
+        raise NotFound("User {} not found".format(uid))
     data = request.get_json()
     if "key" not in data:
         raise BadRequest("key property in request data is missing")
@@ -84,6 +90,11 @@ def submit_kyc(uid):
         {"Body": file_content_base64, "ParentId": uid, "Name": filename,
          "ContentType": file.content_type})
     return file_content_hash
+
+
+@app.errorhandler(404)
+def all_exception_handler(ex):
+    return jsonify({"code": 404, "message": ex.description}), 404
 
 
 if __name__ == '__main__':

@@ -14,7 +14,8 @@ PRIVATE_FIELDS = ["Phone",
                   "KYC_Submitted__c",
                   "KYC_Accepted__c",
                   "KYC_Rejected__c",
-                  "KYC_Response__c"]
+                  "KYC_Response__c",
+                  "KYC_Document__c"]
 REQUIRED_ENV_CONFIG_FIELDS = ["SF_PASSWORD", "SF_TOKEN"]
 
 ALLOWED_EXTENSIONS = ['.png', '.jpg', '.jpeg']
