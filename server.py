@@ -4,7 +4,7 @@ from base64 import b64encode
 
 from flask import Flask, jsonify, request
 from simple_salesforce import Salesforce
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, Forbidden
 from werkzeug.utils import secure_filename
 
 import auth
@@ -44,11 +44,14 @@ def get_user_data(uid):
 @app.route('/api/users/<string:uid>', methods=['POST'])
 @auth.verify_jwt(check=auth.verify_logged_in)
 def update_user_data(uid):
+    contact = sf.Contact.get(uid)
     data = request.get_json()
     if "key" not in data:
         raise BadRequest("key property in request data is missing")
     if "value" not in data:
         raise BadRequest("value property in request data is missing")
+    if contact["Ethereum_Address__c"] != request.authorization["address"]:
+        raise Forbidden("You're only allowed to modify your own data")
     sf.Contact.update(uid, {data["key"]: data["value"]})
     return "User data updated"
 
