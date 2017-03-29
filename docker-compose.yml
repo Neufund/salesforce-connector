@@ -7,5 +7,4 @@ services:
     env_file:
       - config.env
     volumes:
-      - ./ec512.prv.pem:/usr/src/app/ec512.prv.pem
       - ./ec512.pub.pem:/usr/src/app/ec512.pub.pem
