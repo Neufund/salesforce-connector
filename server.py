@@ -31,13 +31,15 @@ def only_keys(data, keys):
 
 
 @app.route('/api/users/<string:uid>', methods=['GET'])
-@auth.verify_jwt(check=auth.verify_logged_in, optional=True)
+@auth.verify_jwt(check=auth.verify_logged_in)
 def get_user_data(uid):
     contact = sf.Contact.get(uid)
-    if request.authorization:
+    if contact["Ethereum_Address__c"] == request.authorization["address"]:
+        # Request for own data
         return jsonify(
             only_keys(contact, app.config["PUBLIC_FIELDS"] + app.config["PRIVATE_FIELDS"]))
     else:
+        # Request for someone's data
         return jsonify(only_keys(contact, app.config["PUBLIC_FIELDS"]))
 
 
