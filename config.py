@@ -17,6 +17,9 @@ PRIVATE_FIELDS = ["Phone",
                   "KYC_Response__c"]
 REQUIRED_ENV_CONFIG_FIELDS = ["SF_PASSWORD", "SF_TOKEN"]
 
+ALLOWED_EXTENSIONS = ['.png', '.jpg', '.jpeg']
+MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+
 MS2_AUDIENCE = "MS2"
 LOGIN_ALGORITHM = "ES512"
 PUB_KEY_PATH = "ec512.pub.pem"

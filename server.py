@@ -1,8 +1,11 @@
+import hashlib
 import os
+from base64 import b64encode
 
 from flask import Flask, jsonify, request
 from simple_salesforce import Salesforce
 from werkzeug.exceptions import BadRequest
+from werkzeug.utils import secure_filename
 
 import auth
 
@@ -48,6 +51,34 @@ def update_user_data(uid):
         raise BadRequest("value property in request data is missing")
     sf.Contact.update(uid, {data["key"]: data["value"]})
     return "User data updated"
+
+
+def _allowed_file(filename):
+    _, extension = os.path.splitext(filename)
+    return extension.lower() in app.config["ALLOWED_EXTENSIONS"]
+
+
+@app.route('/api/users/<string:uid>/kyc', methods=['POST'])
+@auth.verify_jwt(check=auth.verify_logged_in)
+def submit_kyc(uid):
+    # check if the post request has the file part
+    if 'file' not in request.files:
+        raise BadRequest("No file part")
+    file = request.files['file']
+    # if user does not select file, browser also
+    # submit a empty part without filename
+    if file.filename == '':
+        raise BadRequest("No selected file")
+    if not _allowed_file(file.filename):
+        raise BadRequest("Wrong file extension")
+    filename = secure_filename(file.filename)
+    file_content = file.read()
+    file_content_hash = hashlib.sha3_256(file_content).hexdigest()
+    file_content_base64 = b64encode(file_content).decode("utf-8")
+    sf.Attachment.create(
+        {"Body": file_content_base64, "ParentId": uid, "Name": filename,
+         "ContentType": file.content_type})
+    return file_content_hash
 
 
 if __name__ == '__main__':
