@@ -4,7 +4,7 @@ from base64 import b64encode
 
 from flask import Flask, jsonify, request
 from simple_salesforce import Salesforce, SalesforceResourceNotFound
-from werkzeug.exceptions import BadRequest, Forbidden, HTTPException, NotFound
+from werkzeug.exceptions import BadRequest, Forbidden, NotFound
 from werkzeug.utils import secure_filename
 
 import auth
@@ -55,7 +55,11 @@ def update_user_data(uid):
         raise NotFound("User {} not found".format(uid))
     if contact["Ethereum_Address__c"] != request.authorization["address"]:
         raise Forbidden("You're only allowed to modify your own data")
-    sf.Contact.update(uid, request.get_json())
+    data = request.get_json()
+    if "Email" in data:
+        if request.authorization["login_method"] == "2FA":
+            raise Forbidden("2FA users can't update their emails")
+    sf.Contact.update(uid, data)
     return "User data updated"
 
 
@@ -87,8 +91,13 @@ def submit_kyc(uid):
     return file_content_hash
 
 
+@app.errorhandler(403)
+def forbidden(ex):
+    return jsonify({"code": 403, "message": ex.description}), 403
+
+
 @app.errorhandler(404)
-def all_exception_handler(ex):
+def not_found(ex):
     return jsonify({"code": 404, "message": ex.description}), 404
 
 
