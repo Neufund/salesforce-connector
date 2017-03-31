@@ -39,12 +39,13 @@ EMAIL_UPDATE_FORBIDDEN = {'code': 403, 'message': "2FA users can't update their 
 class SalesforceTest(unittest.TestCase):
     def setUp(self):
         self.app = app.test_client()
-        self.two_factor_token = self._login(REMCO_ADDRESS, "2FA")
-        self.neukey_token = self._login(REMCO_ADDRESS, "neukey")
+        self.two_factor_server_token = self._login("bot", audience=app.config['EMAIL_AUDIENCE'])
+        self.two_factor_token = self._login("2FA", address=REMCO_ADDRESS)
+        self.neukey_token = self._login("neukey", address=REMCO_ADDRESS)
 
-    def _login(self, address, login_method):
+    def _login(self, login_method, address=None, audience=None):
         payload = {**{"address": address, "login_method": login_method},
-                   **_get_claims(app.config['MS2_AUDIENCE'],
+                   **_get_claims(audience or app.config['AUDIENCE'],
                                  timedelta(days=1))}
         with open("ec512.prv.pem", "r") as privateKey:
             PRIVATE_ECDSA_KEY = privateKey.read()
@@ -87,6 +88,19 @@ class SalesforceTest(unittest.TestCase):
             pass
         return data
 
+    def updateEmail(self, uid, data, token):
+        data = self.app.post(
+            '/api/users/' + uid + "/email",
+            data=json.dumps(data),
+            headers={"Authorization": "JWT {}".format(token)},
+            content_type='application/json'
+        ).data.decode("utf-8")
+        try:
+            data = json.loads(data)
+        except JSONDecodeError:
+            pass
+        return data
+
     def testUpdateDataIsReversible(self):
         self.assertEqual("User data updated",
                          self.updateData(REMCO_SALESFORCE_ID, {"FirstName": "UpdatedName"},
@@ -103,6 +117,11 @@ class SalesforceTest(unittest.TestCase):
                          self.updateData(REMCO_SALESFORCE_ID, {"Email": "some@email.com"},
                                          self.two_factor_token))
         self.assertDictEqual(REMCO_DATA, self.getData(REMCO_SALESFORCE_ID, self.two_factor_token))
+
+    def test2FAserverCanUpdateEmail(self):
+        self.assertEqual("User email updated",
+                         self.updateEmail(REMCO_SALESFORCE_ID, {"Email": "remco@neufund.org"},
+                                          self.two_factor_server_token))
 
     def testLedgerUsersCanUpdateEmail(self):
         self.assertEqual("User data updated",

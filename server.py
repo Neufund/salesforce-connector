@@ -64,6 +64,14 @@ def update_user_data(uid):
     return "User data updated"
 
 
+@app.route('/api/users/<string:uid>/email', methods=['POST'])
+@auth.verify_jwt(check=auth.verify_logged_in, audience=app.config["EMAIL_AUDIENCE"])
+def update_user_email(uid):
+    data = request.get_json()
+    sf.Contact.update(uid, data)
+    return "User email updated"
+
+
 def _allowed_file(filename):
     _, extension = os.path.splitext(filename)
     return extension.lower() in app.config["ALLOWED_EXTENSIONS"]

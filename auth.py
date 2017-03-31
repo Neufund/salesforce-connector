@@ -22,15 +22,15 @@ def _get_claims(audience, ttl):
     }
 
 
-def verify_logged_in(token):
+def verify_logged_in(token, audience=None):
     from server import app
     return jwt.decode(token, app.config['PUBLIC_ECDSA_KEY'],
-                      audience=app.config['MS2_AUDIENCE'],
+                      audience=audience or app.config['AUDIENCE'],
                       issuer=app.config['ISSUER'],
                       algorithms=app.config['LOGIN_ALGORITHM'])
 
 
-def verify_jwt(check=None):
+def verify_jwt(check=None, *check_args, **check_kwargs):
     def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
@@ -40,7 +40,7 @@ def verify_jwt(check=None):
             auth_type, auth_value = auth_header.split()
             if auth_type != "JWT":
                 raise Forbidden("JWT required")
-            auth_data = check(auth_value)
+            auth_data = check(auth_value, *check_args, **check_kwargs)
             request.authorization = auth_data
             return f(*args, **kwargs)
 
