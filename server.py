@@ -8,6 +8,7 @@ from werkzeug.exceptions import BadRequest, Forbidden, NotFound
 from werkzeug.utils import secure_filename
 
 import auth
+from kyc import get_kyc_hash_for_address
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
@@ -84,6 +85,8 @@ def submit_kyc(uid):
     filename = secure_filename(file.filename)
     file_content = file.read()
     file_content_hash = hashlib.sha3_256(file_content).hexdigest()
+    if file_content_hash != get_kyc_hash_for_address(request.authorization["address"]):
+        raise Forbidden("KYC hash doesn't match the one in the contract")
     file_content_base64 = b64encode(file_content).decode("utf-8")
     sf.Attachment.create(
         {"Body": file_content_base64, "ParentId": uid, "Name": filename,

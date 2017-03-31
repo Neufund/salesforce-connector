@@ -26,6 +26,7 @@ LOGIN_ALGORITHM = "ES512"
 PUB_KEY_PATH = "ec512.pub.pem"
 ISSUER = "Neufund"
 
+WEB3_ENDPOINT = "http://localhost:8545"
 PUBLIC_ECDSA_KEY = None
 
 
