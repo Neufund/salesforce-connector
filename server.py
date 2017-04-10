@@ -112,5 +112,11 @@ def not_found(ex):
     return jsonify({"code": 404, "message": ex.description}), 404
 
 
+@app.after_request
+def add_header(response):
+    response.cache_control.max_age = 300
+    return response
+
+
 if __name__ == '__main__':
     app.run()
